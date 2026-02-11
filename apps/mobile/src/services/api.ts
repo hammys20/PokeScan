@@ -15,6 +15,7 @@ export type AnalyzeResult = {
       setName: string;
       cardNumber: string;
     }>;
+    rawLabelText?: string;
   };
   valuation: {
     currency: "USD";

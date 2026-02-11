@@ -1,0 +1,8 @@
+.git
+node_modules
+**/node_modules
+npm-debug.log*
+.gitignore
+.DS_Store
+docs
+apps/mobile

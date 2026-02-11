@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
+import { analyzeScan } from "./services.js";
 import { confirmScan, createScan, getScan } from "./store.js";
-import { computeFmv, resolveIdentity } from "./services.js";
 
 const gradingCompanySchema = z.enum(["PSA", "BGS", "CGC"]);
 
@@ -26,43 +26,43 @@ router.get("/health", (_req, res) => {
   res.json({ ok: true, service: "pokescan-api" });
 });
 
-router.post("/v1/scans/analyze", (req, res) => {
+router.post("/v1/scans/analyze", async (req, res) => {
   const parsed = analyzeSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
   }
 
-  const identity = resolveIdentity(parsed.data.imageBase64, parsed.data.userHints?.gradingCompany);
-  const valuation = computeFmv({
-    cardNumber: identity.card.cardNumber,
-    gradeNumeric: identity.gradeNumeric,
-    gradingCompany: identity.gradingCompany
-  });
+  try {
+    const analyzed = await analyzeScan(parsed.data);
 
-  const needsUserConfirmation = identity.confidence < 0.82;
+    const stored = await createScan({
+      identity: analyzed.identity,
+      valuation: analyzed.valuation,
+      needsUserConfirmation: analyzed.needsUserConfirmation,
+      status: "analyzed"
+    });
 
-  const stored = createScan({
-    identity,
-    valuation,
-    needsUserConfirmation,
-    status: "analyzed"
-  });
-
-  return res.status(200).json({
-    scanId: stored.scanId,
-    identity: stored.identity,
-    valuation: stored.valuation,
-    needsUserConfirmation: stored.needsUserConfirmation
-  });
+    return res.status(200).json({
+      scanId: stored.scanId,
+      identity: stored.identity,
+      valuation: stored.valuation,
+      needsUserConfirmation: stored.needsUserConfirmation
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to analyze scan",
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 });
 
-router.post("/v1/scans/:scanId/confirm", (req, res) => {
+router.post("/v1/scans/:scanId/confirm", async (req, res) => {
   const parsed = confirmSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
   }
 
-  const scan = confirmScan(req.params.scanId);
+  const scan = await confirmScan(req.params.scanId);
   if (!scan) {
     return res.status(404).json({ error: "Scan not found" });
   }
@@ -74,8 +74,8 @@ router.post("/v1/scans/:scanId/confirm", (req, res) => {
   });
 });
 
-router.get("/v1/scans/:scanId", (req, res) => {
-  const scan = getScan(req.params.scanId);
+router.get("/v1/scans/:scanId", async (req, res) => {
+  const scan = await getScan(req.params.scanId);
   if (!scan) {
     return res.status(404).json({ error: "Scan not found" });
   }

@@ -36,6 +36,10 @@ export function ScanScreen() {
     }
 
     const asset = picked.assets[0];
+    if (!asset.base64 || !asset.uri) {
+      Alert.alert("Analyze failed", "Image payload was missing base64 data.");
+      return;
+    }
     setImageUri(asset.uri);
     setIsLoading(true);
     setResult(null);

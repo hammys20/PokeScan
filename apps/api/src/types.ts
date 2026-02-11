@@ -15,6 +15,7 @@ export type AnalyzeResponse = {
     certNumber: string | null;
     confidence: number;
     alternatives: CardIdentity[];
+    rawLabelText?: string;
   };
   valuation: {
     currency: "USD";
@@ -25,4 +26,19 @@ export type AnalyzeResponse = {
     windowDays: number;
   };
   needsUserConfirmation: boolean;
+};
+
+export type ScanStatus = "analyzed" | "confirmed";
+
+export type ScanRecord = AnalyzeResponse & {
+  status: ScanStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnalyzeRequest = {
+  imageBase64: string;
+  userHints?: {
+    gradingCompany?: GradingCompany;
+  };
 };
