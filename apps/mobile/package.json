@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "expo": "^51.0.28",
+    "expo": "^54.0.0",
     "expo-image-picker": "^15.0.7",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
